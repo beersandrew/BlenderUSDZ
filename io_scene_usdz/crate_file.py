@@ -24,7 +24,9 @@ def toSigned32(n):
     return (n ^ 0x80000000) - 0x80000000
 
 def writeInt32Compressed(file, data):
-    buffer = lz4Compress(usdInt32Compress(data))
+    stuff = usdInt32Compress(data)
+    int_array = list(stuff)
+    buffer = lz4Compress(stuff)
     writeInt(file, len(buffer), 8)
     file.write(buffer)
 
@@ -230,10 +232,9 @@ class CrateFile:
         writeInt(self.file, pathIndex, 4)
         return self.addFieldItem(field, ValueType.PathVector, False, False, False, ref)
 
-    def addReferenceListOp(self, field, item):
+    def addReferenceListOp(self, field, pathIndex):
         field = self.getTokenIndex(field)
         strIndex = self.getStringIndex('')
-        pathIndex = item.pathIndex
         ref = self.file.tell()
         writeInt(self.file, 3, 1) # ListOp Type Flags (Explicit | Explicit Items)
         writeInt(self.file, 1, 8) # Vector Size (size of 1)
@@ -460,6 +461,10 @@ class CrateFile:
         buffer = bytearray()
         for token in self.tokens:
             buffer += token.encode() + b'\0'
+            this_buffer = token.encode() + b'\0'
+            thing = list(this_buffer)
+            a = 2 + 3
+        thing = list(buffer)
         writeInt(self.file, len(buffer), 8)
         buffer = lz4Compress(buffer)
         writeInt(self.file, len(buffer), 8)
@@ -479,8 +484,11 @@ class CrateFile:
         start = self.file.tell()
         writeInt(self.file, len(self.fields), 8)
         writeInt32Compressed(self.file, self.fields)
-        buffer = lz4Compress(encodeInts(self.reps, 8))
+        ints = encodeInts(self.reps, 8)
+        thing1 = list(ints)
+        buffer = lz4Compress(ints)
         writeInt(self.file, len(buffer), 8)
+        thing = list(buffer)
         self.file.write(buffer)
         size = self.file.tell() - start
         self.toc.append(('FIELDS', start, size))
@@ -528,6 +536,7 @@ class CrateFile:
     def writeSections(self):
         self.writeTokensSection()
         self.writeStringsSection()
+        # 1.0 in meters per unit is double here and int in js
         self.writeFieldsSection()
         self.writeFieldSetsSection()
         self.writePathsSection()
@@ -600,11 +609,11 @@ class CrateFile:
         if usdPrim.classType != None:
             fset.append(self.addField('typeName', usdPrim.classType.name))
         for name, value in usdPrim.metadata.items():
+            path = value.pathIndex
             if name == 'inherits':
-                path = value.pathIndex
                 fset.append(self.addFieldPathListOp('inheritPaths', path))
             elif name == 'references':
-                fset.append(sself.addReferenceListOp(field, value))
+                fset.append(self.addReferenceListOp(self.addField(name, path), path))
             else:
                 fset.append(self.addField(name, value))
         if len(usdPrim.attributes) > 0:

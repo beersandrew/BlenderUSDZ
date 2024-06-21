@@ -1,0 +1,14 @@
+#usda 1.0
+(
+    upAxis = "Y"
+)
+
+def "Geometry"
+{
+    def Mesh "Geometry"
+    {
+        int[] faceVertexCounts = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [1, 14, 20, 1, 20, 7, 10, 6, 19, 10, 19, 23, 21, 18, 12, 21, 12, 15, 16, 3, 9, 16, 9, 22, 5, 2, 8, 5, 8, 11, 17, 13, 0, 17, 0, 4]
+    }
+}
+

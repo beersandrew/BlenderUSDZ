@@ -38,8 +38,10 @@ def decodeInts(data, count, size, byteorder='little', signed=False):
 
 def encodeInts(ints, size, byteorder='little', signed=False):
     data = bytearray()
+    current = list(data)
     for i in ints:
         data += i.to_bytes(size, byteorder, signed=signed)
+        current = list(data)
     return data
 
 
@@ -52,7 +54,9 @@ class PositionTable:
     @staticmethod
     def _hash(val):
         val = val & 0x0FFFFFFFF  # prune to 32 bit
-        return (val * 2654435761) & 0x0FFF  # max = 4095
+        stepone = (val * 2654435761)
+        next = stepone & 0x0FFF
+        return next  # max = 4095
 
     def getPosition(self, val):
         index = self._hash(val)
@@ -106,7 +110,7 @@ def countMatch(buf, front, back, max):
 def copySequence(dst, dstHead, literal, match):
     litLen = len(literal)
     dstPtr = dstHead
-
+    thing = list(dst)
     # Write the length of the literal
     token = memoryview(dst)[dstPtr:dstPtr + 1]
     dstPtr += 1
@@ -159,7 +163,9 @@ def lz4CompressDefault(src):
     dstPtr = 0
     MAX_INDEX = srcLen - MFLIMIT
 
+    input = list(src)
     while srcPtr < MAX_INDEX:
+        current = list(dst)
         curValue = readLeUint32(src, srcPtr)
         matchPos = findMatch(posTable, curValue, src, srcPtr)
         if matchPos is not None:
@@ -174,6 +180,8 @@ def lz4CompressDefault(src):
         else:
             posTable.setPosition(curValue, srcPtr)
             srcPtr += 1
+
+    test = list(dst)
     # Write the last literal
     dstPtr += copySequence(dst, dstPtr,
                            memoryview(src)[literalHead:srcLen],
@@ -284,6 +292,7 @@ def usdInt32Compress(values):
     commonValue = Counter(values).most_common()[0][0]
     data += commonValue.to_bytes(4, 'little', signed=True) + data
     data += bytes((len(values) * 2 + 7) // 8)
+    int_array = list(data)
     for v in range(len(values)):
         value = values[v]
         i = v + 16
@@ -297,6 +306,7 @@ def usdInt32Compress(values):
             else:
                 data[i//4] |= 3 << ((i%4)*2)
                 data += value.to_bytes(4, 'little', signed=True)
+        int_array = list(data)
     return data
 
 
